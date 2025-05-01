@@ -1,1 +1,1 @@
-!("Aquarius_Logo.jpg")
+![](Aquarius_Logo.jpg)
