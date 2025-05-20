@@ -627,6 +627,7 @@ AQMultiExtract <- function (sitelist, param, start = "", end = "", site_merge = 
 {
   require(reshape2)
   require(httr)
+  require(RODBC)
   #turn off warnings
   options(warn = -1)
 
@@ -642,9 +643,13 @@ AQMultiExtract <- function (sitelist, param, start = "", end = "", site_merge = 
   #                          change = c(as.Date("2014-10-01"),as.Date("2015-10-01"),as.Date("2017-07-01"),as.Date("2016-07-01"),as.Date("2011-10-01")))
 
   #cross_over <-read.csv("https://objective.envbop.net/id:A4030732/document/versions/published")
-  cross_over <-GET("https://objective.envbop.net/id:A4030732/document/versions/published", authenticate(":",":",type="gssnegotiate"))
-  writeBin(content(cross_over, "raw"), "cross_over_data.csv")
-  cross_over <- read.csv("cross_over_data.csv")
+
+  data("Cross_Over_Sites")
+  cross_over <- Cross_Over_Sites
+  #cross_over <-read.csv("V:/Applications/James/R Course/cross_over_data.csv")
+ # cross_over <-GET("https://objective.envbop.net/id:A4030732/document/versions/published", authenticate(":",":",type="gssnegotiate"))
+  #writeBin(content(cross_over, "raw"), "cross_over_data.csv")
+  #cross_over <- read.csv("cross_over_data.csv")
   #explicit convertion to data frame
 
 
@@ -854,6 +859,7 @@ AQMultiExtractFlat <- function (sitelist, param, start = "", end = "", site_merg
 
   require(reshape2)
   require(httr)
+  require(RODBC)
 
   #turn off warnings
   options(warn = -1)
@@ -880,9 +886,12 @@ AQMultiExtractFlat <- function (sitelist, param, start = "", end = "", site_merg
 
   #cross_over <-read.csv("https://objective.envbop.net/id:A4030732/document/versions/published")
 
-  cross_over <-GET("https://objective.envbop.net/id:A4030732/document/versions/published", authenticate(":",":",type="gssnegotiate"))
-  writeBin(content(cross_over, "raw"), "cross_over_data.csv")
-  cross_over <- read.csv("cross_over_data.csv")
+  data("Cross_Over_Sites")
+  cross_over <- Cross_Over_Sites
+
+  #cross_over <-GET("https://objective.envbop.net/id:A4030732/document/versions/published", authenticate(":",":",type="gssnegotiate"))
+  #writeBin(content(cross_over, "raw"), "cross_over_data.csv")
+  #cross_over <- read.csv("cross_over_data.csv")
   cross_over <-cross_over[,c("current","old","change")]
   cross_over$change <- as.POSIXct(strptime(cross_over$change,format = "%d/%m/%Y"),tz="")
 
@@ -901,7 +910,7 @@ AQMultiExtractFlat <- function (sitelist, param, start = "", end = "", site_merg
       param = c(param,c('Discharge'))
       final_flow = data.frame()
       #TODO - remove _Wait after successful run of sampletime_discharge
-      discharge_metadata = read.csv("\\\\WHKFAP02\\Projects\\Applications\\Data Services\\Data Services\\Environmental Data Services\\Tools\\Outputs\\SampleTime Discharge\\SampleTime_Discharge_Metadata.csv")
+      discharge_metadata = read.csv("\\\\WHKFAP02\\Projects\\Applications\\Data Services\\Data Services\\Environmental Data Services\\Tools\\Outputs\\SampleTime Discharge\\SampleTime_Discharge_Metadata.csv")  ### PROB NEEDS TO CHANGE??
       discharge_metadata$SamplingTime = as.POSIXct(strptime(paste(substr(discharge_metadata$SamplingTime,1,10),substr(discharge_metadata$SamplingTime,12,19)), "%Y-%m-%d %H:%M:%S"), tz = "Etc/GMT+12")
       discharge_metadata$DischargeTime = as.POSIXct(strptime(paste(substr(discharge_metadata$DischargeTime,1,10),substr(discharge_metadata$DischargeTime,12,19)), "%Y-%m-%d %H:%M:%S"), tz = "Etc/GMT+12")
     }
@@ -1240,46 +1249,6 @@ Site_Metadata <- function (data){
   return(data)
 }
 
-EGRETFLOWUpload <- function (data, timecolumnname, flowcolumnname, qUnit = 2) {
-  if(!require(EGRET)){
-    install.packages("EGRET")
-    require(EGRET)
-  }
-  else{
-    require(EGRET)}
-  interactive = TRUE
-  data <- data[,c(timecolumnname,flowcolumnname)]
-  data <- data[complete.cases(data),]
-  convertQ <- c(35.314667, 1, 0.035314667, 0.001)
-  qConvert <- convertQ[qUnit]
-  if (interactive) {
-    if (qUnit == 1)
-      cat("\\n the input discharge are assumed to be in cubic feet per second\\nif they are in cubic meters per second, then the call to readUserDaily should specify qUnit=2\\n")
-  }
-  names(data) <- c("dateTime", "value")
-  localDaily <- populateDaily(data, qConvert, interactive = interactive)
-  localDaily <- localDaily[!is.na(localDaily$Q), ]
-  return(localDaily)
-}
-
-## similar change to EGRETFlow -- except due to needing quality codes getdata(MetadataExport = TRUE) will be required as input
-
-EGRETWQUpload <- function (data) {
-  if(!require(EGRET)){
-    install.packages("EGRET")
-    require(EGRET)
-  }
-  else{
-    require(EGRET)}
-  interactive = TRUE
-  data$remark <- ""
-  data <- data[,c("Time","Quality","Value")]
-  data$Time <- format(as.Date(data$Time), '%Y-%m-%d')
-  data <- data[complete.cases(data),]
-  compressedData <- compressData(data, interactive = interactive)
-  Sample <- populateSampleColumns(compressedData)
-  return(Sample)
-}
 
 FlowtoMeanDaily <- function(Flow, Gap_Fill = FALSE){
   if(!require(dplyr)){
